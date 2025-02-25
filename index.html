@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Form to HTML Converter</title>
+    <link rel="icon" href="https://github.githubassets.com/favicons/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="logo">
+            <img src="https://www.gstatic.com/images/branding/product/1x/forms_2020q4_48dp.png" alt="Forms Logo">
+            <h1>Google Form to HTML Converter</h1>
+        </div>
+        <a href="https://github.com/gittogethers/gittogethers.github.io/tree/main/converter" target="_blank" class="github-link">
+            <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub">
+            View on GitHub
+        </a>
+    </header>
+
+    <main class="container">
+        <section class="input-section">
+            <h2>Input Method</h2>
+            <div class="input-tabs">
+                <button class="input-tab-button active" data-input="url">Prefill URL</button>
+                <button class="input-tab-button" data-input="html">HTML Source</button>
+            </div>
+            
+            <div id="url-input" class="input-pane active">
+                <div class="form-group">
+                    <label for="form-url">Google Form Prefill URL</label>
+                    <input 
+                        type="url" 
+                        id="form-url" 
+                        placeholder="https://docs.google.com/forms/d/e/YOUR_FORM_ID/viewform?usp=pp_url&entry..."
+                        aria-label="Google Form URL"
+                        aria-required="true">
+                    <p class="help-text">Paste a Google Form prefill URL to convert it to HTML</p>
+                </div>
+            </div>
+            
+            <div id="html-input" class="input-pane">
+                <div class="form-group">
+                    <label for="form-html">Google Form HTML Source</label>
+                    <p class="help-text">
+                        1. Open your Google Form in the browser<br>
+                        2. Right-click and select "View Page Source"<br>
+                        3. Copy the entire HTML and paste below
+                    </p>
+                    <textarea 
+                        id="form-html" 
+                        placeholder="Paste the HTML source of your Google Form here..."
+                        aria-label="Google Form HTML Source"
+                        aria-required="true"
+                        rows="8"></textarea>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="form-title">Form Title (Optional)</label>
+                <input 
+                    type="text" 
+                    id="form-title" 
+                    placeholder="My Custom Form"
+                    aria-label="Form Title">
+            </div>
+            <div class="form-group">
+                <label for="theme-color">Theme Color (Optional)</label>
+                <input 
+                    type="color" 
+                    id="theme-color" 
+                    value="#4285F4"
+                    aria-label="Theme Color">
+            </div>
+            <button id="convert-button" class="primary-button">Convert Form</button>
+            <div id="error-message" class="error-message" role="alert"></div>
+        </section>
+
+        <section class="output-section">
+            <div class="tabs">
+                <button class="tab-button active" data-tab="code">Code</button>
+                <button class="tab-button" data-tab="preview">Preview</button>
+            </div>
+            
+            <div class="tab-content">
+                <div id="code-tab" class="tab-pane active">
+                    <div class="code-header">
+                        <div class="code-tabs">
+                            <button class="code-tab-button active" data-code="html">HTML</button>
+                            <button class="code-tab-button" data-code="css">CSS</button>
+                            <button class="code-tab-button" data-code="js">JavaScript</button>
+                        </div>
+                        <button id="copy-code" class="secondary-button">
+                            <span class="copy-icon">📋</span> Copy Code
+                        </button>
+                    </div>
+                    <div class="code-container">
+                        <pre id="code-display" class="code-display html-code"></pre>
+                    </div>
+                </div>
+                
+                <div id="preview-tab" class="tab-pane">
+                    <div class="preview-container">
+                        <iframe id="preview-frame" title="Form Preview"></iframe>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <p>Created with ❤️ for GitHub Pages | Not affiliated with Google</p>
+    </footer>
+
+    <script src="js/parser.js"></script>
+    <script src="js/generator.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html> 
