@@ -2,8 +2,6 @@
 
 A simple, browser-based tool that converts Google Form prefill URLs into custom HTML forms with matching CSS and JavaScript. Perfect for embedding forms in your own website while maintaining the Google Forms backend.
 
-![Google Form to HTML Converter](https://i.imgur.com/JQGkDJZ.png)
-
 ## Features
 
 - 🔄 Convert Google Form prefill URLs to custom HTML forms
@@ -100,7 +98,3 @@ To contribute:
 ## License
 
 MIT License - feel free to use, modify, and distribute as needed.
-
-## Credits
-
-Created by [Your Name] - inspired by the GitTogethers project. 
