@@ -541,19 +541,40 @@ form {
      * @returns {string} The generated field label
      */
     static generateFieldLabel(field) {
+        // If the field already has a label, use it
+        if (field.label && field.label.trim() !== '') {
+            return field.label;
+        }
+        
         // Extract field name from the ID
         const idParts = field.id.split('_');
         
-        // Try to create a readable label
+        // Try to create a readable label from the field name
+        if (field.name) {
+            const nameMatch = field.name.match(/entry\.(\d+)/);
+            if (nameMatch && nameMatch[1]) {
+                return `Question ${nameMatch[1]}`;
+            }
+        }
+        
+        // Try to create a readable label from the field value
         if (field.value && field.value.length > 0) {
             // Use the value as a hint for the label if it's not too long
-            if (field.value.length < 20) {
+            if (field.value.length < 30) {
                 return this.formatLabel(field.value);
             }
         }
         
-        // Default label based on field ID
-        return `Field ${field.id}`;
+        // If field has options, use the first option as a hint
+        if (field.options && field.options.length > 0) {
+            const firstOption = field.options[0];
+            if (firstOption.label) {
+                return `${this.formatLabel(firstOption.label)} (Select One)`;
+            }
+        }
+        
+        // Default label based on field ID and type
+        return `${this.capitalizeFirstLetter(field.type || 'text')} Field ${field.id}`;
     }
 
     /**
@@ -566,6 +587,15 @@ form {
             .replace(/([A-Z])/g, ' $1') // Add space before capital letters
             .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
             .trim();
+    }
+    
+    /**
+     * Capitalize the first letter of a string
+     * @param {string} string - The string to capitalize
+     * @returns {string} The capitalized string
+     */
+    static capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
     /**

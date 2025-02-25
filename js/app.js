@@ -226,6 +226,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Parse form HTML
                 currentFormData = FormParser.parseHtml(formHtml);
                 
+                // Debug: Log parsed form data
+                console.log('Parsed form data:', currentFormData);
+                
+                // Check if we have fields with labels
+                if (currentFormData.fields.length === 0) {
+                    throw new Error('Could not extract any form fields from the HTML source. Please try using the URL method instead.');
+                }
+                
+                const fieldsWithoutLabels = currentFormData.fields.filter(field => !field.label || field.label.trim() === '');
+                if (fieldsWithoutLabels.length > 0) {
+                    console.warn(`Warning: ${fieldsWithoutLabels.length} fields without labels were found.`);
+                }
+                
                 // Set default title if not provided
                 if (!formTitle) {
                     formTitle = currentFormData.formTitle || 'Custom Form';

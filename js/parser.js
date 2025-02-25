@@ -105,7 +105,26 @@ class FormParser {
             }
 
             if (!formId) {
-                throw new Error('Could not extract form ID from the HTML source.');
+                // Try to extract form ID from the HTML directly
+                const fbzxInput = doc.querySelector('input[name="fbzx"]');
+                if (fbzxInput && fbzxInput.value) {
+                    formId = fbzxInput.value;
+                } else {
+                    // Try to find form ID in script tags
+                    const scripts = doc.querySelectorAll('script');
+                    for (const script of scripts) {
+                        const content = script.textContent;
+                        const formIdMatch = content.match(/["']?([0-9A-Za-z_-]{25,}?)["']?/);
+                        if (formIdMatch && formIdMatch[1]) {
+                            formId = formIdMatch[1];
+                            break;
+                        }
+                    }
+                }
+                
+                if (!formId) {
+                    throw new Error('Could not extract form ID from the HTML source.');
+                }
             }
 
             // Extract form action URL
@@ -115,20 +134,85 @@ class FormParser {
             const formTitle = doc.querySelector('title')?.textContent || 
                              doc.querySelector('meta[property="og:title"]')?.content ||
                              doc.querySelector('div[role="heading"]')?.textContent || 
+                             doc.querySelector('.freebirdFormviewerViewHeaderTitle')?.textContent ||
                              'Google Form';
             
             // Extract form fields
             const fields = [];
             
-            // Find all question containers
-            const questionContainers = doc.querySelectorAll('.Qr7Oae[role="listitem"]');
+            // Try multiple selectors for question containers
+            const selectors = [
+                '.Qr7Oae[role="listitem"]',                // Common container
+                '.freebirdFormviewerViewNumberedItemContainer', // Older forms
+                '.freebirdFormviewerViewItemsItemItem',    // Another common container
+                '.freebirdFormviewerComponentsQuestionBaseRoot', // Base question root
+                '[data-params]',                          // Elements with data-params
+                '.freebirdFormviewerViewItemsItemItemHeader' // Question headers
+            ];
             
+            let questionContainers = [];
+            for (const selector of selectors) {
+                const containers = doc.querySelectorAll(selector);
+                if (containers.length > 0) {
+                    questionContainers = containers;
+                    break;
+                }
+            }
+            
+            // Process each question container
             questionContainers.forEach(container => {
-                // Extract question title/label
-                const questionLabel = container.querySelector('[role="heading"]')?.textContent?.trim() || '';
+                // Try multiple selectors for question labels
+                const labelSelectors = [
+                    '[role="heading"]',
+                    '.freebirdFormviewerComponentsQuestionBaseHeader',
+                    '.freebirdFormviewerComponentsQuestionTextTitle',
+                    '.freebirdFormviewerViewItemsItemItemTitle',
+                    '.freebirdFormviewerViewItemsItemItemHeader'
+                ];
+                
+                let questionLabel = '';
+                for (const selector of labelSelectors) {
+                    const labelElement = container.querySelector(selector);
+                    if (labelElement) {
+                        questionLabel = labelElement.textContent.trim();
+                        if (questionLabel) break;
+                    }
+                }
+                
+                // If still no label, try to get it from the container itself
+                if (!questionLabel) {
+                    questionLabel = container.textContent.trim().split('\n')[0] || '';
+                }
                 
                 // Find input fields within this question container
-                const inputs = container.querySelectorAll('input, textarea');
+                const inputs = container.querySelectorAll('input, textarea, select');
+                
+                if (inputs.length === 0) {
+                    // If no inputs found directly, try to find them through data attributes
+                    const dataParams = container.getAttribute('data-params');
+                    if (dataParams) {
+                        try {
+                            // Extract field ID and possibly other data
+                            const matches = dataParams.match(/"([0-9]+)","([^"]+)"/);
+                            if (matches && matches.length >= 3) {
+                                const fieldId = matches[1];
+                                const fieldLabel = matches[2] || questionLabel;
+                                
+                                fields.push({
+                                    id: fieldId,
+                                    name: `entry.${fieldId}`,
+                                    value: '',
+                                    label: fieldLabel,
+                                    type: 'text',
+                                    required: container.textContent.includes('*') || container.querySelector('.freebirdFormviewerViewItemsItemRequiredAsterisk') !== null
+                                });
+                            }
+                        } catch (e) {
+                            console.error('Error parsing data-params:', e);
+                        }
+                    }
+                    return; // Skip to next container
+                }
                 
                 inputs.forEach(input => {
                     const name = input.getAttribute('name');
@@ -144,7 +228,9 @@ class FormParser {
                         
                         // Check if this field is required
                         const isRequired = input.hasAttribute('required') || 
-                                          container.querySelector('.vnumgf') !== null;
+                                          container.querySelector('.vnumgf') !== null ||
+                                          container.querySelector('.freebirdFormviewerViewItemsItemRequiredAsterisk') !== null ||
+                                          container.textContent.includes('*');
                         
                         // Check if this is a radio button or checkbox
                         const isMultipleChoice = type === 'radio' || type === 'checkbox';
@@ -154,8 +240,28 @@ class FormParser {
                         if (isMultipleChoice) {
                             const radioGroup = container.querySelectorAll(`input[name="${name}"]`);
                             radioGroup.forEach(radio => {
-                                const optionLabel = radio.parentElement?.querySelector('.aDTYNe')?.textContent || 
-                                                  radio.parentElement?.textContent?.trim() || '';
+                                // Try multiple selectors for option labels
+                                const optionLabelSelectors = [
+                                    '.aDTYNe',
+                                    '.docssharedWizToggleLabeledLabelText',
+                                    '.freebirdFormviewerComponentsQuestionRadioLabel',
+                                    '.freebirdFormviewerComponentsQuestionCheckboxLabel'
+                                ];
+                                
+                                let optionLabel = '';
+                                for (const selector of optionLabelSelectors) {
+                                    const labelElement = radio.parentElement?.querySelector(selector);
+                                    if (labelElement) {
+                                        optionLabel = labelElement.textContent.trim();
+                                        if (optionLabel) break;
+                                    }
+                                }
+                                
+                                // If still no label, try to get it from the parent element
+                                if (!optionLabel) {
+                                    optionLabel = radio.parentElement?.textContent?.trim() || '';
+                                }
+                                
                                 const optionValue = radio.value || '';
                                 if (optionLabel && optionValue) {
                                     options.push({ label: optionLabel, value: optionValue });
@@ -163,47 +269,50 @@ class FormParser {
                             });
                         }
                         
-                        fields.push({
-                            id: fieldId,
-                            name: name,
-                            value: value,
-                            label: questionLabel,
-                            type: type,
-                            required: isRequired,
-                            options: options.length > 0 ? options : undefined
-                        });
+                        // Only add the field if we haven't already added it
+                        const existingField = fields.find(f => f.name === name);
+                        if (!existingField) {
+                            fields.push({
+                                id: fieldId,
+                                name: name,
+                                value: value,
+                                label: questionLabel,
+                                type: type,
+                                required: isRequired,
+                                options: options.length > 0 ? options : undefined
+                            });
+                        } else if (options.length > 0 && !existingField.options) {
+                            // Update existing field with options if they were found
+                            existingField.options = options;
+                        }
                     }
                 });
             });
 
-            // If no fields were found using the above method, try a fallback method
+            // If no fields were found using the above methods, try a more aggressive approach
             if (fields.length === 0) {
-                // Look for data-params attributes which often contain field information
-                const dataParamsElements = doc.querySelectorAll('[data-params]');
-                dataParamsElements.forEach(element => {
-                    try {
-                        const dataParams = element.getAttribute('data-params');
-                        if (dataParams) {
-                            // Extract field ID and label from data-params
-                            const matches = dataParams.match(/"([0-9]+)","([^"]+)"/);
-                            if (matches && matches.length >= 3) {
-                                const fieldId = matches[1];
-                                const fieldLabel = matches[2];
-                                
+                // Look for any elements that might contain field information
+                const scripts = doc.querySelectorAll('script');
+                for (const script of scripts) {
+                    const content = script.textContent;
+                    // Look for patterns like [null,null,"Entry 1",null,null,null,null,null,null,[]]
+                    const fieldMatches = content.match(/\[null,null,"([^"]+)",null,null,null,null,null,null,\[\]\]/g);
+                    if (fieldMatches) {
+                        fieldMatches.forEach((match, index) => {
+                            const labelMatch = match.match(/"([^"]+)"/);
+                            if (labelMatch && labelMatch[1]) {
                                 fields.push({
-                                    id: fieldId,
-                                    name: `entry.${fieldId}`,
+                                    id: `generated_${index}`,
+                                    name: `entry.generated_${index}`,
                                     value: '',
-                                    label: fieldLabel,
+                                    label: labelMatch[1],
                                     type: 'text',
-                                    required: element.textContent.includes('*')
+                                    required: false
                                 });
                             }
-                        }
-                    } catch (e) {
-                        console.error('Error parsing data-params:', e);
+                        });
                     }
-                });
+                }
             }
 
             return {
