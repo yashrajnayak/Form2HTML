@@ -16,37 +16,17 @@ A simple, browser-based tool that converts Google Form prefill URLs into custom 
 
 ### Method 1: Using a Google Form Prefill URL
 
-1. **Get a Google Form Prefill URL**:
-   - Create a Google Form
-   - Click the three dots menu (⋮) in the top right
-   - Select "Get pre-filled link"
-   - Fill in some example values
-   - Click "Get Link"
-   - Copy the generated URL
-
-2. **Convert the Form**:
-   - Paste the prefill URL into the converter
-   - Optionally customize the form title and theme color
-   - Click "Convert Form"
+1. Open your Google Form and click the three dots menu (⋮) in the top right
+2. Select "Get pre-filled link"
+3. Fill in some example values and click "Get Link"
+4. Paste the prefill URL into the converter
+5. Optionally customize the form title and theme color then click "Convert Form"
 
 ### Method 2: Using the HTML Source (Recommended for better field labels)
 
-1. **Get the HTML Source of your Google Form**:
-   - Open your Google Form in the browser
-   - Right-click anywhere on the page and select "View Page Source"
-   - Press Ctrl+A (or Cmd+A on Mac) to select all the HTML
-   - Copy the entire HTML (Ctrl+C or Cmd+C)
-
-2. **Convert the Form**:
-   - Switch to the "HTML Source" tab in the converter
-   - Paste the copied HTML into the text area
-   - Optionally customize the form title and theme color
-   - Click "Convert Form"
-
-3. **Use the Generated Code**:
-   - Preview the form to ensure it looks correct
-   - Copy the HTML, CSS, and JavaScript code
-   - Integrate the code into your website
+1. Open your Google Form. Right-click anywhere on the page and select "View Page Source"
+2. Copy the entire HTML and paste into the converter
+3. Optionally customize the form title and theme color then click "Convert Form"
 
 ## Technical Details
 
