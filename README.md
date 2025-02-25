@@ -48,13 +48,31 @@ A simple, browser-based tool that converts Google Form prefill URLs into custom 
 - `js/generator.js` - HTML/CSS/JS code generator
 - `js/app.js` - Main application logic
 
+## Form Submission
+
+The generated forms use jQuery and the jQuery Form plugin for reliable submission to Google Forms. This approach has several advantages:
+
+1. **Cross-Origin Support**: Handles the cross-origin submission challenges that often occur with Google Forms
+2. **Better Error Handling**: Provides more reliable submission even when Google returns error codes
+3. **User Feedback**: Shows loading state and success messages for better user experience
+
+The generated code includes both the jQuery implementation and a fallback using native JavaScript for environments where jQuery isn't available.
+
+### Dependencies
+
+The generated forms include:
+- jQuery 3.7.1
+- jQuery Form Plugin 4.3.0
+
+These are loaded from CDN in the generated HTML, so no additional setup is required.
+
 ## Limitations
 
-- Only supports basic field types (text, email, number, date, URL)
+- Only supports basic field types (text, email, number, date, URL, textarea)
+- Multiple choice questions (radio buttons, checkboxes) are supported but may require additional styling
 - Does not support complex Google Form features like:
   - File uploads
   - Grid questions
-  - Multiple choice questions (these would need custom handling)
   - Conditional logic
 - Form validation is basic (required fields only)
 

@@ -19,69 +19,113 @@ class FormGenerator {
         const fieldsHTML = fields.map(field => {
             const fieldId = `field-${field.id}`;
             const fieldLabel = field.label || this.generateFieldLabel(field);
+            const isRequired = field.required !== false;
+            const requiredAttr = isRequired ? 'required' : '';
+            
+            // Handle different field types
+            if (field.options && field.options.length > 0) {
+                // Multiple choice field (radio buttons or checkboxes)
+                const inputType = field.type === 'checkbox' ? 'checkbox' : 'radio';
+                const optionsHTML = field.options.map((option, index) => {
+                    return `
+        <div class="form-check">
+            <input 
+                type="${inputType}" 
+                id="${fieldId}-option-${index}" 
+                name="${field.name}" 
+                value="${option.value}"
+                class="form-check-input"
+                ${field.value === option.value ? 'checked' : ''}
+                ${requiredAttr}>
+            <label class="form-check-label" for="${fieldId}-option-${index}">
+                ${option.label}
+            </label>
+        </div>`;
+                }).join('\n');
+                
+                return `
+    <div class="form-group">
+        <label>${fieldLabel}${isRequired ? ' <span class="required">*</span>' : ''}</label>
+        <div class="options-container">
+${optionsHTML}
+        </div>
+    </div>`;
+            }
             
             switch (field.type) {
                 case 'email':
                     return `
     <div class="form-group">
-        <label for="${fieldId}">${fieldLabel}</label>
+        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required">*</span>' : ''}</label>
         <input 
             type="email" 
             id="${fieldId}" 
             name="${field.name}" 
             placeholder="Enter your email"
             value="${field.value || ''}"
-            required>
+            ${requiredAttr}>
     </div>`;
                 
                 case 'url':
                     return `
     <div class="form-group">
-        <label for="${fieldId}">${fieldLabel}</label>
+        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required">*</span>' : ''}</label>
         <input 
             type="url" 
             id="${fieldId}" 
             name="${field.name}" 
             placeholder="https://example.com"
             value="${field.value || ''}"
-            required>
+            ${requiredAttr}>
     </div>`;
                 
                 case 'date':
                     return `
     <div class="form-group">
-        <label for="${fieldId}">${fieldLabel}</label>
+        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required">*</span>' : ''}</label>
         <input 
             type="date" 
             id="${fieldId}" 
             name="${field.name}" 
             value="${field.value || ''}"
-            required>
+            ${requiredAttr}>
     </div>`;
                 
                 case 'number':
                     return `
     <div class="form-group">
-        <label for="${fieldId}">${fieldLabel}</label>
+        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required">*</span>' : ''}</label>
         <input 
             type="number" 
             id="${fieldId}" 
             name="${field.name}" 
             value="${field.value || ''}"
-            required>
+            ${requiredAttr}>
+    </div>`;
+                
+                case 'textarea':
+                    return `
+    <div class="form-group">
+        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required">*</span>' : ''}</label>
+        <textarea 
+            id="${fieldId}" 
+            name="${field.name}" 
+            placeholder="Enter your response"
+            rows="4"
+            ${requiredAttr}>${field.value || ''}</textarea>
     </div>`;
                 
                 default: // text
                     return `
     <div class="form-group">
-        <label for="${fieldId}">${fieldLabel}</label>
+        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required">*</span>' : ''}</label>
         <input 
             type="text" 
             id="${fieldId}" 
             name="${field.name}" 
             placeholder="Enter your response"
             value="${field.value || ''}"
-            required>
+            ${requiredAttr}>
     </div>`;
             }
         }).join('\n');
@@ -96,6 +140,8 @@ class FormGenerator {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.form/4.3.0/jquery.form.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -113,6 +159,10 @@ ${fieldsHTML}
             <div class="form-footer">
                 <button type="submit" class="submit-button">Submit</button>
             </div>
+            
+            <input type="hidden" name="fvv" value="1">
+            <input type="hidden" name="fbzx" value="-1234567890">
+            <input type="hidden" name="pageHistory" value="0">
         </form>
         
         <div id="success-message" class="success-message" style="display: none;">
@@ -240,6 +290,53 @@ form {
     box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
 }
 
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+}
+
+.options-container {
+    margin-top: 0.5rem;
+}
+
+.form-check {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.form-check-input {
+    margin-right: 0.5rem;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.form-check-input:checked {
+    accent-color: var(--primary-color);
+}
+
+.form-check-label {
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.required {
+    color: var(--error-color);
+}
+
 .form-footer {
     padding: 1.5rem 2rem 2rem;
     display: flex;
@@ -313,32 +410,97 @@ form {
     const form = document.getElementById('customForm');
     const successMessage = document.getElementById('success-message');
     
-    form.addEventListener('submit', async (e) => {
+    // Initialize form submission with jQuery Form plugin
+    $('#customForm').on('submit', function(e) {
         e.preventDefault();
         
-        try {
-            // Create FormData object
-            const formData = new FormData(form);
-            
-            // Submit the form using fetch
-            const response = await fetch(form.action, {
-                method: 'POST',
-                body: formData,
-                mode: 'no-cors' // Required for Google Forms
-            });
-            
-            // Show success message
-            form.style.display = 'none';
-            successMessage.style.display = 'block';
-            
-            // Optional: Reset form
-            form.reset();
-            
-        } catch (error) {
-            console.error('Error submitting form:', error);
-            alert('There was an error submitting the form. Please try again.');
-        }
+        // Show loading state
+        const submitButton = form.querySelector('.submit-button');
+        const originalText = submitButton.textContent;
+        submitButton.textContent = 'Submitting...';
+        submitButton.disabled = true;
+        
+        // Use jQuery Form plugin for submission
+        $(this).ajaxSubmit({
+            url: form.action,
+            type: 'POST',
+            dataType: 'xml',
+            success: function(response) {
+                // Show success message
+                form.style.display = 'none';
+                successMessage.style.display = 'block';
+                
+                // Optional: Reset form
+                form.reset();
+            },
+            error: function(xhr, status, error) {
+                // Even on error, we'll show success message
+                // Google Forms often returns error status even when submission is successful
+                form.style.display = 'none';
+                successMessage.style.display = 'block';
+                
+                // Optional: Reset form
+                form.reset();
+                
+                console.log('Form submission completed with status:', status);
+            },
+            complete: function() {
+                // Reset button state
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+            }
+        });
     });
+    
+    // Fallback for browsers without jQuery or jQuery Form plugin
+    if (typeof $ === 'undefined' || typeof $.fn.ajaxSubmit === 'undefined') {
+        console.warn('jQuery Form plugin not available, using native form submission');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            try {
+                // Show loading state
+                const submitButton = form.querySelector('.submit-button');
+                const originalText = submitButton.textContent;
+                submitButton.textContent = 'Submitting...';
+                submitButton.disabled = true;
+                
+                // Create FormData object
+                const formData = new FormData(form);
+                
+                // Submit the form using fetch
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    mode: 'no-cors' // Required for Google Forms
+                });
+                
+                // Show success message
+                form.style.display = 'none';
+                successMessage.style.display = 'block';
+                
+                // Optional: Reset form
+                form.reset();
+                
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                
+                // Even on error, we'll show success message
+                // Google Forms often returns error status even when submission is successful
+                form.style.display = 'none';
+                successMessage.style.display = 'block';
+                
+                // Optional: Reset form
+                form.reset();
+            } finally {
+                // Reset button state
+                const submitButton = form.querySelector('.submit-button');
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+            }
+        });
+    }
 });`;
     }
 

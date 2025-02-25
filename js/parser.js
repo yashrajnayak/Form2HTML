@@ -114,58 +114,96 @@ class FormParser {
             // Extract form title
             const formTitle = doc.querySelector('title')?.textContent || 
                              doc.querySelector('meta[property="og:title"]')?.content ||
-                             doc.querySelector('h1')?.textContent || 
+                             doc.querySelector('div[role="heading"]')?.textContent || 
                              'Google Form';
             
             // Extract form fields
             const fields = [];
             
-            // Find all input fields and textareas
-            const inputElements = doc.querySelectorAll('input, textarea');
+            // Find all question containers
+            const questionContainers = doc.querySelectorAll('.Qr7Oae[role="listitem"]');
             
-            for (const input of inputElements) {
-                const name = input.getAttribute('name');
-                if (name && name.startsWith('entry.')) {
-                    const fieldId = name.replace('entry.', '');
-                    const value = input.value || '';
-                    
-                    // Try to find the label for this field
-                    let label = '';
-                    
-                    // Look for label element with 'for' attribute
-                    const labelFor = doc.querySelector(`label[for="${input.id}"]`);
-                    if (labelFor) {
-                        label = labelFor.textContent.trim();
-                    } else {
-                        // Look for closest heading or div with class containing 'title' or 'question'
-                        const parentDiv = input.closest('div');
-                        if (parentDiv) {
-                            const heading = parentDiv.querySelector('h1, h2, h3, h4, h5, h6');
-                            if (heading) {
-                                label = heading.textContent.trim();
-                            } else {
-                                const titleDiv = parentDiv.querySelector('div[class*="title"], div[class*="question"]');
-                                if (titleDiv) {
-                                    label = titleDiv.textContent.trim();
+            questionContainers.forEach(container => {
+                // Extract question title/label
+                const questionLabel = container.querySelector('[role="heading"]')?.textContent?.trim() || '';
+                
+                // Find input fields within this question container
+                const inputs = container.querySelectorAll('input, textarea');
+                
+                inputs.forEach(input => {
+                    const name = input.getAttribute('name');
+                    if (name && name.startsWith('entry.')) {
+                        const fieldId = name.replace('entry.', '');
+                        const value = input.value || '';
+                        
+                        // Determine input type
+                        let type = input.type || 'text';
+                        if (type === 'text' && value) {
+                            type = this.guessFieldType(value);
+                        }
+                        
+                        // Check if this field is required
+                        const isRequired = input.hasAttribute('required') || 
+                                          container.querySelector('.vnumgf') !== null;
+                        
+                        // Check if this is a radio button or checkbox
+                        const isMultipleChoice = type === 'radio' || type === 'checkbox';
+                        
+                        // For radio buttons and checkboxes, we need to extract all options
+                        let options = [];
+                        if (isMultipleChoice) {
+                            const radioGroup = container.querySelectorAll(`input[name="${name}"]`);
+                            radioGroup.forEach(radio => {
+                                const optionLabel = radio.parentElement?.querySelector('.aDTYNe')?.textContent || 
+                                                  radio.parentElement?.textContent?.trim() || '';
+                                const optionValue = radio.value || '';
+                                if (optionLabel && optionValue) {
+                                    options.push({ label: optionLabel, value: optionValue });
                                 }
+                            });
+                        }
+                        
+                        fields.push({
+                            id: fieldId,
+                            name: name,
+                            value: value,
+                            label: questionLabel,
+                            type: type,
+                            required: isRequired,
+                            options: options.length > 0 ? options : undefined
+                        });
+                    }
+                });
+            });
+
+            // If no fields were found using the above method, try a fallback method
+            if (fields.length === 0) {
+                // Look for data-params attributes which often contain field information
+                const dataParamsElements = doc.querySelectorAll('[data-params]');
+                dataParamsElements.forEach(element => {
+                    try {
+                        const dataParams = element.getAttribute('data-params');
+                        if (dataParams) {
+                            // Extract field ID and label from data-params
+                            const matches = dataParams.match(/"([0-9]+)","([^"]+)"/);
+                            if (matches && matches.length >= 3) {
+                                const fieldId = matches[1];
+                                const fieldLabel = matches[2];
+                                
+                                fields.push({
+                                    id: fieldId,
+                                    name: `entry.${fieldId}`,
+                                    value: '',
+                                    label: fieldLabel,
+                                    type: 'text',
+                                    required: element.textContent.includes('*')
+                                });
                             }
                         }
+                    } catch (e) {
+                        console.error('Error parsing data-params:', e);
                     }
-                    
-                    // Determine input type
-                    let type = input.type || 'text';
-                    if (type === 'text' && value) {
-                        type = this.guessFieldType(value);
-                    }
-                    
-                    fields.push({
-                        id: fieldId,
-                        name: name,
-                        value: value,
-                        label: label,
-                        type: type
-                    });
-                }
+                });
             }
 
             return {
