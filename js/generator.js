@@ -20,69 +20,75 @@ class FormGenerator {
             const fieldId = `field-${field.id}`;
             const fieldLabel = field.label || this.generateFieldLabel(field);
             const isRequired = field.required !== false;
-            const requiredAttr = isRequired ? 'required' : '';
+            const requiredAttr = isRequired ? 'required aria-required="true"' : '';
             
             // Handle different field types
             if (field.options && field.options.length > 0) {
                 // Multiple choice field (radio buttons or checkboxes)
                 const inputType = field.type === 'checkbox' ? 'checkbox' : 'radio';
+                const fieldsetName = `fieldset-${field.id}`;
                 const optionsHTML = field.options.map((option, index) => {
                     return `
-        <div class="form-check">
-            <input 
-                type="${inputType}" 
-                id="${fieldId}-option-${index}" 
-                name="${field.name}" 
-                value="${option.value}"
-                class="form-check-input"
-                ${field.value === option.value ? 'checked' : ''}
-                ${requiredAttr}>
-            <label class="form-check-label" for="${fieldId}-option-${index}">
-                ${option.label}
-            </label>
-        </div>`;
+            <div class="form-check">
+                <input 
+                    type="${inputType}" 
+                    id="${fieldId}-option-${index}" 
+                    name="${field.name}" 
+                    value="${option.value}"
+                    class="form-check-input"
+                    ${field.value === option.value ? 'checked' : ''}
+                    ${requiredAttr}>
+                <label class="form-check-label" for="${fieldId}-option-${index}">
+                    ${option.label}
+                </label>
+            </div>`;
                 }).join('\n');
                 
                 return `
-    <div class="form-group">
-        <label>${fieldLabel}${isRequired ? ' <span class="required">*</span>' : ''}</label>
-        <div class="options-container">
+    <fieldset class="form-group" id="${fieldsetName}">
+        <legend>${fieldLabel}${isRequired ? ' <span class="required" aria-hidden="true">*</span>' : ''}</legend>
+        <div class="options-container" role="group" aria-labelledby="${fieldsetName}-legend">
 ${optionsHTML}
         </div>
-    </div>`;
+    </fieldset>`;
             }
             
             switch (field.type) {
                 case 'email':
                     return `
     <div class="form-group">
-        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required">*</span>' : ''}</label>
+        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required" aria-hidden="true">*</span>' : ''}</label>
         <input 
             type="email" 
             id="${fieldId}" 
             name="${field.name}" 
             placeholder="Enter your email"
             value="${field.value || ''}"
+            autocomplete="email"
             ${requiredAttr}>
+        <div class="form-text" id="${fieldId}-help">Please enter a valid email address</div>
     </div>`;
                 
                 case 'url':
                     return `
     <div class="form-group">
-        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required">*</span>' : ''}</label>
+        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required" aria-hidden="true">*</span>' : ''}</label>
         <input 
             type="url" 
             id="${fieldId}" 
             name="${field.name}" 
             placeholder="https://example.com"
             value="${field.value || ''}"
+            autocomplete="url"
+            aria-describedby="${fieldId}-help"
             ${requiredAttr}>
+        <div class="form-text" id="${fieldId}-help">Please enter a valid URL starting with http:// or https://</div>
     </div>`;
                 
                 case 'date':
                     return `
     <div class="form-group">
-        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required">*</span>' : ''}</label>
+        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required" aria-hidden="true">*</span>' : ''}</label>
         <input 
             type="date" 
             id="${fieldId}" 
@@ -94,7 +100,7 @@ ${optionsHTML}
                 case 'number':
                     return `
     <div class="form-group">
-        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required">*</span>' : ''}</label>
+        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required" aria-hidden="true">*</span>' : ''}</label>
         <input 
             type="number" 
             id="${fieldId}" 
@@ -106,7 +112,7 @@ ${optionsHTML}
                 case 'textarea':
                     return `
     <div class="form-group">
-        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required">*</span>' : ''}</label>
+        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required" aria-hidden="true">*</span>' : ''}</label>
         <textarea 
             id="${fieldId}" 
             name="${field.name}" 
@@ -118,7 +124,7 @@ ${optionsHTML}
                 default: // text
                     return `
     <div class="form-group">
-        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required">*</span>' : ''}</label>
+        <label for="${fieldId}">${fieldLabel}${isRequired ? ' <span class="required" aria-hidden="true">*</span>' : ''}</label>
         <input 
             type="text" 
             id="${fieldId}" 
@@ -130,6 +136,9 @@ ${optionsHTML}
             }
         }).join('\n');
         
+        // Generate CSS
+        const cssCode = this.generateCSS(themeColor);
+        
         // Create complete HTML document
         return `<!DOCTYPE html>
 <html lang="en">
@@ -137,42 +146,50 @@ ${optionsHTML}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${formTitle}</title>
+    <meta name="description" content="${formTitle} - Custom form that submits to Google Forms">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.form/4.3.0/jquery.form.min.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    <!-- jQuery and jQuery Form Plugin for reliable form submission -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.form/4.3.0/jquery.form.min.js" integrity="sha512-YUkaLm+KJ5lQXDBdqBqk7EVhJAdxRnVdT2vtCzwPHSweCzyMgYV/tgGF4/dCyqtCC2eCphz0lRQgatGVdfR0ww==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+${cssCode}
+    </style>
 </head>
 <body>
     <div class="container">
-        <form id="customForm" action="${formActionUrl}" method="POST">
-            <div class="form-header">
+        <form id="customForm" action="${formActionUrl}" method="POST" novalidate>
+            <header class="form-header">
                 <h1>${formTitle}</h1>
                 <p class="form-description">Please fill out the form below.</p>
-            </div>
+            </header>
             
-            <div class="form-fields">
+            <div class="form-fields" role="group">
 ${fieldsHTML}
             </div>
             
-            <div class="form-footer">
+            <footer class="form-footer">
                 <button type="submit" class="submit-button">Submit</button>
-            </div>
+            </footer>
             
+            <!-- Hidden fields required by Google Forms -->
             <input type="hidden" name="fvv" value="1">
             <input type="hidden" name="fbzx" value="-1234567890">
             <input type="hidden" name="pageHistory" value="0">
+            <input type="hidden" name="draftResponse" value="[]">
         </form>
         
-        <div id="success-message" class="success-message" style="display: none;">
-            <div class="success-icon">✓</div>
+        <div id="success-message" class="success-message" style="display: none;" role="alert" aria-live="assertive">
+            <div class="success-icon" aria-hidden="true">✓</div>
             <h2>Thank You!</h2>
             <p>Your response has been submitted successfully.</p>
         </div>
     </div>
     
-    <script src="script.js"></script>
+    <script>
+    // Form submission script will be added separately
+    </script>
 </body>
 </html>`;
     }
@@ -410,92 +427,106 @@ form {
     const form = document.getElementById('customForm');
     const successMessage = document.getElementById('success-message');
     
-    // Initialize form submission with jQuery Form plugin
-    $('#customForm').on('submit', function(e) {
-        e.preventDefault();
-        
-        // Show loading state
-        const submitButton = form.querySelector('.submit-button');
-        const originalText = submitButton.textContent;
-        submitButton.textContent = 'Submitting...';
-        submitButton.disabled = true;
-        
-        // Use jQuery Form plugin for submission
-        $(this).ajaxSubmit({
-            url: form.action,
-            type: 'POST',
-            dataType: 'xml',
-            success: function(response) {
-                // Show success message
-                form.style.display = 'none';
-                successMessage.style.display = 'block';
-                
-                // Optional: Reset form
-                form.reset();
-            },
-            error: function(xhr, status, error) {
-                // Even on error, we'll show success message
-                // Google Forms often returns error status even when submission is successful
-                form.style.display = 'none';
-                successMessage.style.display = 'block';
-                
-                // Optional: Reset form
-                form.reset();
-                
-                console.log('Form submission completed with status:', status);
-            },
-            complete: function() {
-                // Reset button state
-                submitButton.textContent = originalText;
-                submitButton.disabled = false;
-            }
-        });
-    });
+    if (!form || !successMessage) {
+        console.error('Required form elements not found');
+        return;
+    }
     
-    // Fallback for browsers without jQuery or jQuery Form plugin
-    if (typeof $ === 'undefined' || typeof $.fn.ajaxSubmit === 'undefined') {
+    // Function to show the success message
+    const showSuccessMessage = () => {
+        form.style.display = 'none';
+        successMessage.style.display = 'block';
+        
+        // Scroll to success message
+        successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Reset form
+        form.reset();
+    };
+    
+    // Check if jQuery and jQuery Form plugin are available
+    const hasJQuery = typeof jQuery !== 'undefined';
+    const hasJQueryForm = hasJQuery && typeof jQuery.fn.ajaxSubmit !== 'undefined';
+    
+    if (hasJQuery && hasJQueryForm) {
+        // Use jQuery Form plugin for submission (most reliable method)
+        jQuery(form).on('submit', function(e) {
+            e.preventDefault();
+            
+            // Show loading state
+            const submitButton = form.querySelector('.submit-button');
+            const originalText = submitButton.textContent;
+            submitButton.textContent = 'Submitting...';
+            submitButton.disabled = true;
+            
+            // Use jQuery Form plugin for submission
+            jQuery(this).ajaxSubmit({
+                url: form.action,
+                type: 'POST',
+                dataType: 'xml',
+                success: function(response) {
+                    showSuccessMessage();
+                    console.log('Form submitted successfully');
+                },
+                error: function(xhr, status, error) {
+                    // Even on error, we'll show success message
+                    // Google Forms often returns error status even when submission is successful
+                    showSuccessMessage();
+                    console.log('Form submission completed with status:', status);
+                },
+                complete: function() {
+                    // Reset button state
+                    submitButton.textContent = originalText;
+                    submitButton.disabled = false;
+                }
+            });
+        });
+    } else {
+        // Fallback for browsers without jQuery or jQuery Form plugin
         console.warn('jQuery Form plugin not available, using native form submission');
         
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            // Show loading state
+            const submitButton = form.querySelector('.submit-button');
+            const originalText = submitButton.textContent;
+            submitButton.textContent = 'Submitting...';
+            submitButton.disabled = true;
+            
             try {
-                // Show loading state
-                const submitButton = form.querySelector('.submit-button');
-                const originalText = submitButton.textContent;
-                submitButton.textContent = 'Submitting...';
-                submitButton.disabled = true;
-                
                 // Create FormData object
                 const formData = new FormData(form);
                 
-                // Submit the form using fetch
-                const response = await fetch(form.action, {
-                    method: 'POST',
-                    body: formData,
-                    mode: 'no-cors' // Required for Google Forms
-                });
+                // Create a hidden iframe for submission (to handle cross-origin issues)
+                const iframe = document.createElement('iframe');
+                iframe.name = 'hidden-form-iframe';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
                 
-                // Show success message
-                form.style.display = 'none';
-                successMessage.style.display = 'block';
+                // Set form target to the iframe
+                form.target = 'hidden-form-iframe';
                 
-                // Optional: Reset form
-                form.reset();
+                // Submit the form to the iframe
+                form.submit();
+                
+                // Show success message after a short delay
+                setTimeout(() => {
+                    showSuccessMessage();
+                    
+                    // Clean up
+                    setTimeout(() => {
+                        document.body.removeChild(iframe);
+                    }, 1000);
+                }, 1500);
                 
             } catch (error) {
                 console.error('Error submitting form:', error);
                 
                 // Even on error, we'll show success message
-                // Google Forms often returns error status even when submission is successful
-                form.style.display = 'none';
-                successMessage.style.display = 'block';
-                
-                // Optional: Reset form
-                form.reset();
+                showSuccessMessage();
             } finally {
                 // Reset button state
-                const submitButton = form.querySelector('.submit-button');
                 submitButton.textContent = originalText;
                 submitButton.disabled = false;
             }
@@ -545,10 +576,20 @@ form {
      * @returns {Object} Object containing HTML, CSS, and JS code
      */
     static generateFormPackage(formData, formTitle, themeColor) {
+        // Generate HTML with CSS included
+        const htmlWithCss = this.generateHTML(formData, formTitle, themeColor);
+        
+        // Generate JavaScript separately
+        const jsCode = this.generateJS();
+        
+        // Create complete HTML with CSS and JS included
+        const completeHtml = htmlWithCss.replace('<script>\n    // Form submission script will be added separately\n    </script>', 
+                                               `<script>\n${jsCode}\n    </script>`);
+        
         return {
-            html: this.generateHTML(formData, formTitle, themeColor),
+            html: completeHtml,
             css: this.generateCSS(themeColor),
-            js: this.generateJS()
+            js: jsCode
         };
     }
 } 

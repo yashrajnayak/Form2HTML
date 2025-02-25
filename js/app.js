@@ -148,21 +148,46 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Update preview iframe
     const updatePreview = () => {
-        const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
-        previewDoc.open();
-        previewDoc.write(generatedCode.html);
+        if (!generatedCode.html) {
+            return;
+        }
         
-        // Add CSS
-        const styleElement = previewDoc.createElement('style');
-        styleElement.textContent = generatedCode.css;
-        previewDoc.head.appendChild(styleElement);
-        
-        // Add JavaScript
-        const scriptElement = previewDoc.createElement('script');
-        scriptElement.textContent = generatedCode.js;
-        previewDoc.body.appendChild(scriptElement);
-        
-        previewDoc.close();
+        try {
+            const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+            previewDoc.open();
+            previewDoc.write(generatedCode.html);
+            previewDoc.close();
+            
+            // Add event listener to handle form submission in the iframe
+            previewFrame.onload = () => {
+                try {
+                    const iframeWindow = previewFrame.contentWindow;
+                    const previewForm = iframeWindow.document.getElementById('customForm');
+                    
+                    if (previewForm) {
+                        // Override form submission in preview to prevent actual submission
+                        previewForm.addEventListener('submit', (e) => {
+                            e.preventDefault();
+                            
+                            // Show success message in preview
+                            previewForm.style.display = 'none';
+                            const successMessage = iframeWindow.document.getElementById('success-message');
+                            if (successMessage) {
+                                successMessage.style.display = 'block';
+                            }
+                            
+                            // Log submission data
+                            const formData = new FormData(previewForm);
+                            console.log('Preview form submission data:', Object.fromEntries(formData.entries()));
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error setting up preview form:', error);
+                }
+            };
+        } catch (error) {
+            console.error('Error updating preview:', error);
+        }
     };
     
     // Handle form conversion
@@ -208,8 +233,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // Generate form code
-            generatedCode = FormGenerator.generateFormPackage(currentFormData, formTitle, themeColor);
+            // Generate HTML with CSS included
+            const htmlWithCss = FormGenerator.generateHTML(currentFormData, formTitle, themeColor);
+            
+            // Generate JavaScript separately
+            const jsCode = FormGenerator.generateJS();
+            
+            // Store generated code
+            generatedCode = {
+                html: htmlWithCss.replace('<script>\n    // Form submission script will be added separately\n    </script>', 
+                                         `<script>\n${jsCode}\n    </script>`),
+                css: FormGenerator.generateCSS(themeColor),
+                js: jsCode
+            };
             
             // Update code display
             updateCodeDisplay();
